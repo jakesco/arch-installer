@@ -26,7 +26,7 @@ if [[ ! $(ping -c1 archlinux.org) ]] ; then
 fi
 
 microcode=$(dialog --stdout --menu "Which microcode package should be installed?" \
-            0 0 0 $(echo "intel-ucode 1\namd-ucode 2")) || exit 1
+            0 0 0 $(echo -e "intel-ucode 1\namd-ucode 2")) || exit 1
 
 # Get user parameters
 echo -n "Enter hostname: "
