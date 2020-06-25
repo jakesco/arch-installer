@@ -1,2 +1,3 @@
 # arch-installer
-Simple bash script to install Arch Linux
+
+A bash script to install Arch Linux
