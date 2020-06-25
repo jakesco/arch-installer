@@ -25,7 +25,10 @@ if [[ ! $(ping -c1 archlinux.org) ]] ; then
     exit 1
 fi
 
-microcode=$(dialog --stdout --menu "Which microcode package should be installed?" \
+kerneloptions="linux 1\nlinux-hardened 2\nlinux-lts 3\nlinux-zen 4"
+kernel=$(dialog --stdout --menu "Select kernel" 0 0 0 $(echo -e "${kerneloptions}")) || exit 1
+
+microcode=$(dialog --stdout --menu "Select microcode package" \
             0 0 0 $(echo -e "intel-ucode 1\namd-ucode 2")) || exit 1
 
 # Get user parameters
@@ -89,8 +92,8 @@ part_root="${device}3"
 
 # set time and refresh keys
 timedatectl set-ntp true
-echo 'Refreshing keyring...'
-pacman-key --refresh-keys
+#echo 'Refreshing keyring...'
+#pacman-key --refresh-keys
 
 # start logging
 exec &> >(tee "install.log")
@@ -121,7 +124,7 @@ curl -s "https://www.archlinux.org/mirrorlist/?country=US&protocol=https&ip_vers
 # USERSPACE e2fsprogs, btrfs-progs, exfat-utils, dosfstools
 # MAN man-db man-pages texinfo
 # OTHER intel/amd-ucode networkmanager ufw neovim git
-pacstrap /mnt base linux-zen linux-firmware base-devel \
+pacstrap /mnt base ${kernel} linux-firmware base-devel \
               e2fsprogs dosfstools exfat-utils btrfs-progs \
               man-db man-pages texinfo \
               ${microcode} networkmanager ufw neovim git
@@ -175,9 +178,9 @@ EOF
 
 cat > /mnt/boot/loader/entries/arch.conf << EOF
 title Arch Linux
-linux /vmlinuz-linux
+linux /vmlinuz-${kernel}
 initrd /${microcode}.img
-initrd /initramfs-linux.img
+initrd /initramfs-${kernel}.img
 options root=PARTUUID=$(blkid -s PARTUUID -o value "${part_root}") rw quiet
 EOF
 
