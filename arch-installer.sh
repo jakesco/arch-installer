@@ -30,6 +30,7 @@ kernel=$(dialog --stdout --menu "Select kernel" 0 0 0 $(echo -e "${kerneloptions
 
 microcode=$(dialog --stdout --menu "Select microcode package" \
             0 0 0 $(echo -e "intel-ucode 1\namd-ucode 2")) || exit 1
+clear
 
 # Get user parameters
 echo -n "Enter hostname: "
@@ -181,7 +182,7 @@ title Arch Linux
 linux /vmlinuz-${kernel}
 initrd /${microcode}.img
 initrd /initramfs-${kernel}.img
-options root=PARTUUID=$(blkid -s PARTUUID -o value "${part_root}") rw quiet
+options root=PARTUUID=$(blkid -s PARTUUID -o value "${part_root}") rw
 EOF
 
 # Make pacman pretty
