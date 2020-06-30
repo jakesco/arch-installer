@@ -53,6 +53,10 @@ if [[ ! "$password" == "$password2" ]] ; then
     exit 1
 fi
 
+echo -n "Do you wish to continue? [Y/n] "
+read confirm
+[[ ${confirm,,} == "n" ]] && exit 1
+
 # get disks for install
 devicelist=$(lsblk -dpnx size -o name,size | grep -Ev "boot|rpmb|loop" | tac)
 device=$(dialog --stdout --menu "Select installation disk" 0 0 0 ${devicelist}) || exit 1
@@ -87,14 +91,14 @@ parted --script "${device}" mklabel gpt \
     mkpart swap linux-swap 551MiB ${swap_end} \
     mkpart primary ext4 ${swap_end} 100%
 
-part_boot="${device}1"
-part_swap="${device}2"
-part_root="${device}3"
+part_boot="${device}p1"
+part_swap="${device}p2"
+part_root="${device}p3"
 
 # set time and refresh keys
 timedatectl set-ntp true
-#echo 'Refreshing keyring...'
-#pacman-key --refresh-keys
+echo 'Refreshing keyring...'
+pacman-key --refresh-keys
 
 # start logging
 exec &> >(tee "install.log")
@@ -149,8 +153,8 @@ cat > /mnt/etc/hosts << EOF
 127.0.1.1     ${hostname}.localdomain ${hostname}
 EOF
 
-# Refresh initramfs
-arch-chroot /mnt mkinitcpio -P
+# Refresh initramfs (only needed with encrypted install)
+#arch-chroot /mnt mkinitcpio -P
 
 # Configure systemd-boot
 arch-chroot /mnt bootctl --path=/boot install
