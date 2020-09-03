@@ -68,7 +68,7 @@ echo -n "Enter swap size in MiB: "
 read -s swap_size
 : ${swap_size:?'swap size cannot be empty'}
 # calculated size of swap partition
-swap_end=$(( $swap_size + 261 ))MiB
+swap_end=$(( $swap_size + 260 + 1 ))MiB
 
 _message="
 Installing arch on $device with...
@@ -143,6 +143,7 @@ swapon -L SWAP
 pacman -Q pacman-contrib &>/dev/null || sudo pacman -Syq --noconfirm pacman-contrib
 cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
 
+echo "Refreshing pacman mirrorlist..."
 curl -s "https://www.archlinux.org/mirrorlist/?country=US&protocol=https&ip_version=4&ip_version=6&uuse_mirror_status=on" | sed -e 's/^#Server/Server/' -e '/^## U/d' | rankmirrors -n 5 - > /etc/pacman.d/mirrorlist
 
 # begin arch install
