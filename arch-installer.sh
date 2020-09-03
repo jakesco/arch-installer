@@ -5,6 +5,11 @@
 set -uo pipefail
 trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND; exit $s' ERR
 
+if ! [ $(id -u) = 0 ]; then
+    echo 'This script must be run as root.'
+    exit 1
+fi
+
 # for hidpi
 echo -n "Use large font? [y/N] "
 read large_font
@@ -53,18 +58,17 @@ if [[ ! "$password" == "$password2" ]] ; then
     exit 1
 fi
 
-echo -n "Do you wish to continue? [Y/n] "
-read confirm
-[[ ${confirm,,} == "n" ]] && exit 1
-
 # get disks for install
 devicelist=$(lsblk -dpnx size -o name,size | grep -Ev "boot|rpmb|loop" | tac)
 device=$(dialog --stdout --menu "Select installation disk" 0 0 0 ${devicelist}) || exit 1
 clear
 
+echo "System RAM: $(free --mebi)MiB"
+echo -n "Enter swap size in MiB: "
+read -s swap_size
+: ${swap_size:?'swap size cannot be empty'}
 # calculated size of swap partition
-swap_size=$(free --mebi | awk '/Mem:/ {print $2}')
-swap_end=$(( $swap_size + 550 + 1))MiB
+swap_end=$(( $swap_size + 261 ))MiB
 
 _message="
 Installing arch on $device with...
@@ -72,8 +76,8 @@ Hostname: $hostname
 Username: $username
 
 Drive $device with be wiped and the following partitions with be created...
-BOOT: 550M
-SWAP: ${swap_size}M
+BOOT: 260MiB
+SWAP: ${swap_size}MiB
 ROOT: Rest of drive
 "
 echo "$_message"
@@ -86,19 +90,26 @@ read confirm
 
 # partition drive
 parted --script "${device}" mklabel gpt \
-    mkpart ESP fat32 1Mib 551MiB \
+    mkpart efi fat32 1Mib 261MiB \
     set 1 boot on \
-    mkpart swap linux-swap 551MiB ${swap_end} \
-    mkpart primary ext4 ${swap_end} 100%
+    mkpart swap linux-swap 261MiB ${swap_end} \
+    set 2 swap on \
+    mkpart system btrfs ${swap_end} 100%
 
-part_boot="${device}p1"
-part_swap="${device}p2"
-part_root="${device}p3"
+if [[ $device = *nvme* ]] || [[ $device = *mmcblk* ]]; then
+    part_boot="${device}p1"
+    part_swap="${device}p2"
+    part_root="${device}p3"
+else
+    part_boot="${device}1"
+    part_swap="${device}2"
+    part_root="${device}3"
+fi
 
 # set time and refresh keys
 timedatectl set-ntp true
-echo 'Refreshing keyring...'
-pacman-key --refresh-keys
+#echo 'Refreshing keyring...'
+#pacman-key --refresh-keys
 
 # start logging
 exec &> >(tee "install.log")
@@ -108,14 +119,25 @@ wipefs "${part_boot}"
 wipefs "${part_root}"
 wipefs "${part_swap}"
 
-mkfs.fat -F32 "${part_boot}"
-mkswap "${part_swap}"
-mkfs.ext4 "${part_root}"
+mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/efi
+mkswap -L SWAP /dev/disk/by-partlabel/swap
+mkfs.btrfs -L SYSTEM /dev/disk/by-partlabel/system
 
-swapon "${part_swap}"
-mount "${part_root}" /mnt
-mkdir /mnt/boot
-mount "${part_boot}" /mnt/boot
+# Make btrfs subvolumes
+mount -t btrfs LABEL=SYSTEM /mnt
+btrfs subvolume create /mnt/root
+btrfs subvolume create /mnt/home
+btrfs subvolume create /mnt/snapshots
+umount -R /mnt
+
+# Mount everything
+m_opts=compress=lzo,noatime,autodefrag
+mount -t btrfs -o defaults,$m_opts,subvol=root LABEL=SYSTEM /mnt
+mkdir -p /mnt/boot /mnt/home /mnt/.snapshots
+mount -t btrfs -o defaults,$m_opts,subvol=home LABEL=SYSTEM /mnt/home
+mount -t btrfs -o defaults,$m_opts,subvol=snapshots LABEL=SYSTEM /mnt/.snapshots
+mount LABEL=EFI /mnt/boot
+swapon -L SWAP
 
 # Install pacman-contrib and update mirrorlist
 pacman -Q pacman-contrib &>/dev/null || sudo pacman -Syq --noconfirm pacman-contrib
@@ -186,7 +208,7 @@ title Arch Linux
 linux /vmlinuz-${kernel}
 initrd /${microcode}.img
 initrd /initramfs-${kernel}.img
-options root=PARTUUID=$(blkid -s PARTUUID -o value "${part_root}") rw
+options root=PARTUUID=$(blkid -s PARTUUID -o value "${part_root}") rootflags=subvol=root rw
 EOF
 
 # Make pacman pretty
@@ -215,7 +237,7 @@ arch-chroot /mnt systemctl enable ufw.service
 arch-chroot /mnt ufw enable
 
 # add admin user
-arch-chroot /mnt useradd -mU -G wheel,uucp,video,audio,storage,games,input "$username"
+arch-chroot /mnt useradd -mU -G wheel "$username"
 
 # Change user and root passwords
 echo "$username:$password" | arch-chroot /mnt chpasswd

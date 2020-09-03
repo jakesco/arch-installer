@@ -1,3 +1,4 @@
+numlockx
 alacritty
 bc
 code
