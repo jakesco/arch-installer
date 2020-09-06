@@ -1,6 +1,8 @@
 #!/bin/bash
 # Arch install script
 
+PS3="Make a selection: "
+
 # settings to make script fail loudly
 set -uo pipefail
 trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND; exit $s' ERR
@@ -30,14 +32,54 @@ if [[ ! $(ping -c1 archlinux.org) ]] ; then
     exit 1
 fi
 
-kerneloptions="linux 1\nlinux-hardened 2\nlinux-lts 3\nlinux-zen 4"
-kernel=$(dialog --stdout --menu "Select kernel" 0 0 0 $(echo -e "${kerneloptions}")) || exit 1
+# Pick kernel
+kerneloptions="linux linux-hardened linux-lts linux-zen"
+echo "Which kernel do you want to install?"
+select kernel in $kerneloptions; do
+    case $kernel in
+        linux) break ;;
+        linux-hardened) break ;;
+        linux-lts) break ;;
+        linux-zen) break ;;
+        *) echo "Invalid option" ;;
+    esac
+done
+echo "$kernel"
 
-microcode=$(dialog --stdout --menu "Select microcode package" \
-            0 0 0 $(echo -e "intel-ucode 1\namd-ucode 2")) || exit 1
-clear
+# Pick microcode
+echo -e "\nWhich processor manufacturer?"
+select microcode in amd intel; do
+    case $microcode in
+        amd) microcode=amd-ucode
+            break
+            ;;
+        intel) microcode=intel-ucode
+            break
+            ;;
+        *) echo "Invalid option" ;;
+    esac
+done
+echo "$microcode"
 
-# Get user parameters
+echo -e "\nSystem RAM: $(free --mebi | awk '/^Mem: / {print $2}')MiB"
+echo -n "Enter desired swap size in MiB: "
+read swap_size
+: ${swap_size:?'swap size cannot be empty'}
+# calculated size of swap partition
+swap_end=$(( $swap_size + 260 + 1 ))MiB
+
+# get disks for install
+devicelist=$(lsblk -dpnx size -o name,size | grep -Ev "boot|rpmb|loop" | tac)
+echo -e "\nAvailable installation devices:\n$devicelist"
+devices=$(lsblk -dpnx size -o name | grep -Ev "boot|rpmb|loop" | tr '\n' ' ' | sed -e 's/ $//')
+echo -e "\nChoose a device for this Arch installation:"
+select device in $devices
+do
+    break
+done
+echo "$device"
+
+# Get user and hostname
 echo -n "Enter hostname: "
 read hostname
 : ${hostname:?'hostname cannot be empty'}
@@ -58,22 +100,15 @@ if [[ ! "$password" == "$password2" ]] ; then
     exit 1
 fi
 
-# get disks for install
-devicelist=$(lsblk -dpnx size -o name,size | grep -Ev "boot|rpmb|loop" | tac)
-device=$(dialog --stdout --menu "Select installation disk" 0 0 0 ${devicelist}) || exit 1
 clear
-
-echo "System RAM: $(free --mebi)MiB"
-echo -n "Enter swap size in MiB: "
-read -s swap_size
-: ${swap_size:?'swap size cannot be empty'}
-# calculated size of swap partition
-swap_end=$(( $swap_size + 260 + 1 ))MiB
 
 _message="
 Installing arch on $device with...
 Hostname: $hostname
 Username: $username
+
+Kernel: $kernel
+Microcode: $microcode
 
 Drive $device with be wiped and the following partitions with be created...
 BOOT: 260MiB
@@ -96,16 +131,6 @@ parted --script "${device}" mklabel gpt \
     set 2 swap on \
     mkpart system btrfs ${swap_end} 100%
 
-if [[ $device = *nvme* ]] || [[ $device = *mmcblk* ]]; then
-    part_boot="${device}p1"
-    part_swap="${device}p2"
-    part_root="${device}p3"
-else
-    part_boot="${device}1"
-    part_swap="${device}2"
-    part_root="${device}3"
-fi
-
 # set time and refresh keys
 timedatectl set-ntp true
 #echo 'Refreshing keyring...'
@@ -115,9 +140,9 @@ timedatectl set-ntp true
 exec &> >(tee "install.log")
 
 # format partitions
-wipefs "${part_boot}"
-wipefs "${part_root}"
-wipefs "${part_swap}"
+wipefs /dev/disk/by-partlabel/efi
+wipefs /dev/disk/by-partlabel/swap
+wipefs /dev/disk/by-partlabel/system
 
 mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/efi
 mkswap -L SWAP /dev/disk/by-partlabel/swap
@@ -245,7 +270,7 @@ echo "$username:$password" | arch-chroot /mnt chpasswd
 echo "root:$password" | arch-chroot /mnt chpasswd
 
 # Edit sudoers file to enable wheel group
-sed -i 's/# %wheel ALL=(ALL) NO/%wheel ALL=(ALL) NO/' /mnt/etc/sudoers
+sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/' /mnt/etc/sudoers
 
 # Disable root password
 arch-chroot /mnt passwd -l root

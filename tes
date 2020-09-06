@@ -1,0 +1,93 @@
+#!/bin/bash
+
+PS3="Make a selection: "
+
+# Pick kernel
+kerneloptions="linux linux-hardened linux-lts linux-zen"
+echo "Which kernel do you want to install?"
+select kernel in $kerneloptions; do
+    case $kernel in
+        linux) break ;;
+        linux-hardened) break ;;
+        linux-lts) break ;;
+        linux-zen) break ;;
+        *) echo "Invalid option" ;;
+    esac
+done
+echo "$kernel"
+
+# Pick microcode
+echo -e "\nWhich processor manufacturer?"
+select microcode in amd intel; do
+    case $microcode in
+        amd) microcode=amd-ucode
+            break
+            ;;
+        intel) microcode=intel-ucode
+            break
+            ;;
+        *) echo "Invalid option" ;;
+    esac
+done
+echo "$microcode"
+
+echo -e "\nSystem RAM: $(free --mebi | awk '/^Mem: / {print $2}')MiB"
+echo -n "Enter desired swap size in MiB: "
+read swap_size
+: ${swap_size:?'swap size cannot be empty'}
+# calculated size of swap partition
+swap_end=$(( $swap_size + 260 + 1 ))MiB
+
+# get disks for install
+devicelist=$(lsblk -dpnx size -o name,size | grep -Ev "boot|rpmb|loop" | tac)
+echo -e "\nAvailable installation devices:\n$devicelist"
+devices=$(lsblk -dpnx size -o name | grep -Ev "boot|rpmb|loop" | tr '\n' ' ' | sed -e 's/ $//')
+echo -e "\nChoose a device for this Arch installation:"
+select device in $devices
+do
+    break
+done
+echo "$device"
+
+# Get user and hostname
+echo -n "Enter hostname: "
+read hostname
+: ${hostname:?'hostname cannot be empty'}
+
+echo -n "Enter admin username: "
+read username
+: ${username:?'username cannot be empty'}
+
+echo -n "Enter admin password: "
+read -s password
+: ${password:?'password cannot be empty'}
+echo
+echo -n "Retype admin password: "
+read -s password2
+echo
+if [[ ! "$password" == "$password2" ]] ; then
+    echo "Passwords did not match"
+    exit 1
+fi
+
+clear
+
+_message="
+Installing arch with...
+Hostname: $hostname
+Username: $username
+
+Kernel: $kernel
+Microcode: $microcode
+
+Drive $device will be wiped and the following partitions will be created...
+BOOT: 260MiB (fat32)
+SWAP: ${swap_size}MiB (swap)
+ROOT: Rest of drive (btrfs)
+"
+echo "$_message"
+
+echo -n "Do you wish to continue? [Y/n] "
+read confirm
+[[ ${confirm,,} == "n" ]] && exit 1
+
