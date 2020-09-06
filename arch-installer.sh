@@ -110,7 +110,7 @@ Username: $username
 Kernel: $kernel
 Microcode: $microcode
 
-Drive $device with be wiped and the following partitions with be created...
+Drive $device will be wiped and the following partitions will be created...
 BOOT: 260MiB
 SWAP: ${swap_size}MiB
 ROOT: Rest of drive
@@ -121,7 +121,17 @@ echo -n "Do you wish to continue? [Y/n] "
 read confirm
 [[ ${confirm,,} == "n" ]] && exit 1
 
+# Refresh Keyrings only necessary with old iso
+#echo 'Refreshing keyring...'
+#pacman-key --refresh-keys
+
 ### Install Start ###
+
+# start logging
+exec &> >(tee "install.log")
+
+# set time
+timedatectl set-ntp true
 
 # partition drive
 parted --script "${device}" mklabel gpt \
@@ -131,22 +141,10 @@ parted --script "${device}" mklabel gpt \
     set 2 swap on \
     mkpart system btrfs ${swap_end} 100%
 
-# set time and refresh keys
-timedatectl set-ntp true
-#echo 'Refreshing keyring...'
-#pacman-key --refresh-keys
-
-# start logging
-exec &> >(tee "install.log")
-
 # format partitions
-wipefs /dev/disk/by-partlabel/efi
-wipefs /dev/disk/by-partlabel/swap
-wipefs /dev/disk/by-partlabel/system
-
 mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/efi
 mkswap -L SWAP /dev/disk/by-partlabel/swap
-mkfs.btrfs -L SYSTEM /dev/disk/by-partlabel/system
+mkfs.btrfs -L SYSTEM -f /dev/disk/by-partlabel/system
 
 # Make btrfs subvolumes
 mount -t btrfs LABEL=SYSTEM /mnt
