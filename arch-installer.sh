@@ -232,7 +232,7 @@ title Arch Linux
 linux /vmlinuz-${kernel}
 initrd /${microcode}.img
 initrd /initramfs-${kernel}.img
-options root=PARTUUID=$(blkid -s PARTUUID -o value "${part_root}") rootflags=subvol=root rw
+options root=PARTUUID=$(blkid -s PARTUUID -o value /dev/disk/by-partlabel/system) rootflags=subvol=root rw
 EOF
 
 # Make pacman pretty
