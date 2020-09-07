@@ -151,14 +151,17 @@ mount -t btrfs LABEL=SYSTEM /mnt
 btrfs subvolume create /mnt/root
 btrfs subvolume create /mnt/home
 btrfs subvolume create /mnt/snapshots
+btrfs subvolume create /mnt/pkg
 umount -R /mnt
 
 # Mount everything
-m_opts=compress=lzo,noatime,autodefrag
+m_opts=noatime,compress=lzo,autodefrag
 mount -t btrfs -o defaults,$m_opts,subvol=root LABEL=SYSTEM /mnt
-mkdir -p /mnt/boot /mnt/home /mnt/.snapshots
+mkdir -p /mnt/{boot,home,var/cache/pacman/pkg,.snapshots,btrfs}
 mount -t btrfs -o defaults,$m_opts,subvol=home LABEL=SYSTEM /mnt/home
 mount -t btrfs -o defaults,$m_opts,subvol=snapshots LABEL=SYSTEM /mnt/.snapshots
+mount -t btrfs -o defaults,$m_opts,subvol=pkg LABEL=SYSTEM /mnt/var/cache/pacman/pkg
+mount -t btrfs -o defaults,$m_opts,subvolid=5 LABEL=SYSTEM /mnt/btrfs
 mount LABEL=EFI /mnt/boot
 swapon -L SWAP
 
@@ -241,6 +244,11 @@ grep "^Color" /mnt/etc/pacman.conf > /dev/null || sed -i "s/^#Color/Color/" /mnt
 # Disable the beep
 arch-chroot /mnt rmmod pcspkr
 echo "blacklist pcspkr" > /mnt/etc/modprobe.d/nobeep.conf
+
+# Lower swappiness
+cat > /mnt/etc/sysctl.d/99-swappiness.conf << EOF
+vm.swappiness=10
+EOF
 
 # Make large font permanent
 if [[ ${large_font,,} == "y" ]]; then
