@@ -151,15 +151,20 @@ mount -t btrfs LABEL=SYSTEM /mnt
 btrfs subvolume create /mnt/root
 btrfs subvolume create /mnt/home
 btrfs subvolume create /mnt/snapshots
+btrfs subvolume create /mnt/log
 btrfs subvolume create /mnt/pkg
 umount -R /mnt
 
+# May also want subvols for:
+# ~/.cache
+# ~/.local/share/Steam/steamapps
 # Mount everything
 m_opts=noatime,compress=lzo,autodefrag
 mount -t btrfs -o defaults,$m_opts,subvol=root LABEL=SYSTEM /mnt
-mkdir -p /mnt/{boot,home,var/cache/pacman/pkg,.snapshots,btrfs}
+mkdir -p /mnt/{boot,home,var/cache/pacman/pkg,var/log,.snapshots,btrfs}
 mount -t btrfs -o defaults,$m_opts,subvol=home LABEL=SYSTEM /mnt/home
 mount -t btrfs -o defaults,$m_opts,subvol=snapshots LABEL=SYSTEM /mnt/.snapshots
+mount -t btrfs -o defaults,$m_opts,subvol=log LABEL=SYSTEM /mnt/var/log
 mount -t btrfs -o defaults,$m_opts,subvol=pkg LABEL=SYSTEM /mnt/var/cache/pacman/pkg
 mount -t btrfs -o defaults,$m_opts,subvolid=5 LABEL=SYSTEM /mnt/btrfs
 mount LABEL=EFI /mnt/boot

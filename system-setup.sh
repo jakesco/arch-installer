@@ -15,10 +15,9 @@ if [[ $(pacman -Qs xf86-video | wc -l) -eq 0 ]]; then
 fi
 
 sudo pacman -S --noconfirm \
-    pacman-contrib dash xorg-server xorg-xinit xorg-apps youtube-dl \
-    libreoffice-fresh pulseaudio pulseaudio-alsa pulsemixer ttf-dejavu stow \
-    xdg-user-dirs alacritty imagemagick bc firefox mumble mpv freerdp remmina \
-    lshw noto-fonts noto-fonts-cjk noto-fonts-extra ttf-liberation openssh
+    gnome pacman-contrib dash youtube-dl stow alacritty imagemagick firefox \
+    libreoffice-fresh mumble mpv freerdp remmina transmission-gtk \
+    ttf-dejavu noto-fonts noto-fonts-cjk noto-fonts-extra ttf-liberation
 
 # XDG Directories
 mkdir -vp $HOME/Projects $HOME/Downloads $HOME/Templates $HOME/Shared \
