@@ -159,7 +159,7 @@ umount -R /mnt
 # ~/.cache
 # ~/.local/share/Steam/steamapps
 # Mount everything
-m_opts=noatime,compress=lzo,autodefrag
+m_opts=noatime,compress=zstd
 mount -t btrfs -o defaults,$m_opts,subvol=root LABEL=SYSTEM /mnt
 mkdir -p /mnt/{boot,home,var/cache/pacman/pkg,var/log,.snapshots,btrfs}
 mount -t btrfs -o defaults,$m_opts,subvol=home LABEL=SYSTEM /mnt/home
