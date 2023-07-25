@@ -167,7 +167,6 @@ mount --mkdir -t btrfs -o $m_opts,subvol=@log /dev/mapper/root /mnt/var/log
 mount --mkdir -t btrfs -o $m_opts,subvol=@pkg /dev/mapper/root /mnt/var/cache/pacman/pkg
 mount --mkdir -t btrfs -o $m_opts,subvol=@snapshots /dev/mapper/root /mnt/.snapshots
 mount --mkdir -t btrfs -o $m_opts,subvolid=5 /dev/mapper/root /mnt/btrfs
-mount -t btrfs -o defaults,$m_opts,subvolid=5 LABEL=SYSTEM /mnt/btrfs
 mount LABEL=EFI /mnt/boot
 
 # Update mirrorlist
