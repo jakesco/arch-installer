@@ -254,7 +254,7 @@ title Arch Linux
 linux /vmlinuz-${kernel}
 initrd /${microcode}.img
 initrd /initramfs-${kernel}.img
-options cryptdevice=UUID=$(blkid -s UUID -o value /dev/mapper/root):root root=/dev/mapper/root rw quiet splash zswap.enabled=0
+options cryptdevice=UUID=$(blkid -s UUID -o value /dev/disk/by-partlabel/system):root root=/dev/mapper/root rw quiet splash zswap.enabled=0
 EOF
 
 # Make pacman pretty
