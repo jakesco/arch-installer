@@ -219,8 +219,8 @@ cat >> /mnt/etc/hosts << EOF
 127.0.1.1     ${hostname}.localdomain ${hostname}
 EOF
 
-# TODO edit mkinitcpio.conf hooks
-echo "Unimplemented mkinitcpio hooks" && exit 1
+# Edit mkinitcpio.conf hooks
+sed -i 's/^\(HOOKS=.*\)file/\1encrypt file/' /mnt/etc/mkinitcpio.conf
 
 # Refresh initramfs
 arch-chroot /mnt mkinitcpio -P
