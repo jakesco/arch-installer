@@ -167,7 +167,7 @@ mount --mkdir -t btrfs -o $m_opts,subvol=@log /dev/mapper/root /mnt/var/log
 mount --mkdir -t btrfs -o $m_opts,subvol=@pkg /dev/mapper/root /mnt/var/cache/pacman/pkg
 mount --mkdir -t btrfs -o $m_opts,subvol=@snapshots /dev/mapper/root /mnt/.snapshots
 mount --mkdir -t btrfs -o $m_opts,subvolid=5 /dev/mapper/root /mnt/btrfs
-mount LABEL=EFI /mnt/boot
+mount --mkdir LABEL=EFI /mnt/boot
 
 # Update mirrorlist
 echo "Updating pacman mirrorlist..."
@@ -249,6 +249,7 @@ initrd /${microcode}.img
 initrd /initramfs-${kernel}.img
 options cryptdevice=UUID=$(blkid -s UUID -o value /dev/disk/by-partlabel/system):root root=/dev/mapper/root rw quiet splash zswap.enabled=0
 EOF
+sleep 1
 
 # Make pacman pretty and fast
 grep "^Color" /mnt/etc/pacman.conf > /dev/null || sed -i "s/^#Color/Color/" /mnt/etc/pacman.conf
@@ -287,6 +288,7 @@ When = PostTransaction
 Exec = /usr/bin/ln -sfT dash /usr/bin/sh
 Depends = dash
 EOF
+sleep 1
 
 # Check if device is SSD, if so enable trim timer
 if [[ $(lsblk -Ddbpnl -o name,disc-gran | grep "$device" | awk '{print $2}') -gt 0 ]]; then
@@ -310,7 +312,7 @@ echo "root:$password" | arch-chroot /mnt chpasswd
 sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/' /mnt/etc/sudoers
 
 # Disable root password
-arch-chroot /mnt passwd -l root
+# arch-chroot /mnt passwd -l root
 
 # Enable autologin for admin user
 cat >> /mnt/etc/greetd/config.toml << EOF
@@ -320,9 +322,5 @@ command = "/bin/bash"
 user = "${username}"
 EOF
 
-# unmount drive
-umount -R /mnt || echo "Failed to unmount /mnt"
-
 # Exit info
-echo -e "\nMain install done. reboot and remove iso\nremember to run ufw enable on first login"
-
+echo -e "\nMain install done. Unmount you drive, reboot and remove iso.\nRemember to run ufw enable on first login"
