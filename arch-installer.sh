@@ -255,6 +255,15 @@ EOF
 grep "^Color" /mnt/etc/pacman.conf > /dev/null || sed -i "s/^#Color/Color/" /mnt/etc/pacman.conf
 grep "^ParallelDownloads" /mnt/etc/pacman.conf > /dev/null || sed -i "s/^#ParallelDownloads/ParallelDownloads/" /mnt/etc/pacman.conf
 
+# Setup reflector schedule
+cat > /mnt/etc/xdg/reflector/reflector.conf << EOF
+--save /etc/pacman.d/mirrorlist
+--country US
+--protocol https
+--latest 5
+EOF
+arch-chroot /mnt systemctl enable reflector.timer
+
 # Make large font permanent
 if [[ ${large_font,,} == "y" ]]; then
 cat > /mnt/etc/vconsole.conf << EOF
