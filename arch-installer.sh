@@ -185,7 +185,7 @@ echo "Bootstraping new install..."
 pacstrap -K /mnt base base-devel ${kernel} linux-firmware linux-headers \
               e2fsprogs dosfstools exfat-utils btrfs-progs cryptsetup \
               ${microcode} efibootmgr networkmanager ufw sudo reflector \
-              man-db man-pages texinfo neovim git
+              man-db man-pages texinfo greetd neovim git
 
 echo "Configuring new install..."
 sleep 1
@@ -271,11 +271,13 @@ fi
 # Check if device is SSD, if so enable trim timer
 if [[ $(lsblk -Ddbpnl -o name,disc-gran | grep "$device" | awk '{print $2}') -gt 0 ]]; then
     arch-chroot /mnt systemctl enable fstrim.timer
+    echo "fstrim enabled"
 fi
 
-# Enable networkmanager and ufw
+# Enable networkmanager, ufw and greeter
 arch-chroot /mnt systemctl enable NetworkManager.service
 arch-chroot /mnt systemctl enable ufw.service
+arch-chroot /mnt systemctl enable greetd.service
 
 # add admin user
 arch-chroot /mnt useradd -mU -G wheel "$username"
@@ -290,9 +292,17 @@ sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/' /mnt/etc/sudoers
 # Disable root password
 arch-chroot /mnt passwd -l root
 
+# Enable autologin for admin user
+cat >> /mnt/etc/greetd/config.toml << EOF
+
+[initial_session]
+command = "/bin/bash"
+user = "${username}"
+EOF
+
 # unmount drive
 umount -R /mnt || echo "Failed to unmount /mnt"
 
 # Exit info
-echo -e "\nMain install done. reboot and remove iso"
+echo -e "\nMain install done. reboot and remove iso\nremember to run ufw enable on first login"
 
