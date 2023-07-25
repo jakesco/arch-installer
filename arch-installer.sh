@@ -175,6 +175,8 @@ reflector --latest 5 --sort rate --country US --save /etc/pacman.d/mirrorlist
 
 # begin arch install
 echo "Bootstraping new install..."
+echo "It may look like the command is stalled but it's working."
+sleep 4
 pacstrap -K /mnt base base-devel ${kernel} linux-firmware linux-headers \
               e2fsprogs dosfstools exfat-utils btrfs-progs cryptsetup \
               ${microcode} efibootmgr networkmanager ufw sudo reflector \
@@ -189,7 +191,6 @@ sleep 1
 echo "zram" > /mnt/etc/modules-load.d/zram.conf
 echo 'ACTION=="add", KERNEL=="zram0", ATTR{comp_algorithm}="zstd", ATTR{disksize}="4G", RUN="/usr/bin/mkswap -U clear /dev/%k", TAG+="systemd"' > /mnt/etc/udev/rules.d/99.zram.rules
 cat >> /mnt/etc/fstab << EOF
-
 # /dev/zram0
 /dev/zram0 none swap defaults,pri=100 0 0
 EOF
@@ -309,10 +310,10 @@ echo "$username:$password" | arch-chroot /mnt chpasswd
 echo "root:$password" | arch-chroot /mnt chpasswd
 
 # Edit sudoers file to enable wheel group
-sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/' /mnt/etc/sudoers
+sed -i 's/# \(%wheel ALL=(ALL:ALL) ALL\)/\1/' /mnt/etc/sudoers
 
 # Disable root password
-# arch-chroot /mnt passwd -l root
+arch-chroot /mnt passwd -l root
 
 # Enable autologin for admin user
 cat >> /mnt/etc/greetd/config.toml << EOF
@@ -322,5 +323,7 @@ command = "/bin/bash"
 user = "${username}"
 EOF
 
+umount -R /mnt
+
 # Exit info
-echo -e "\nMain install done. Unmount you drive, reboot and remove iso.\nRemember to run ufw enable on first login"
+echo -e "\nMain install done. Ready to reboot and remove iso. Remember to run ufw enable on first login"
