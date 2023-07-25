@@ -185,7 +185,7 @@ echo "Bootstraping new install..."
 pacstrap -K /mnt base base-devel ${kernel} linux-firmware linux-headers \
               e2fsprogs dosfstools exfat-utils btrfs-progs cryptsetup \
               ${microcode} efibootmgr networkmanager ufw sudo reflector \
-              man-db man-pages texinfo greetd neovim git
+              man-db man-pages texinfo dash greetd neovim git
 
 echo "Configuring new install..."
 sleep 1
@@ -267,6 +267,23 @@ FONT=latarcyrheb-sun32
 FONT_MAP=8859-2
 EOF
 fi
+
+# Link dash to /bin/sh instead of bash
+echo "Installing dash..."
+arch-chroot /mnt ln -sfT dash /usr/bin/sh
+cat > /mnt/etc/pacman.d/hooks/110-link-dash.hook << EOF
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Target = bash
+
+[Action]
+Description = Re-pointing /bin/sh symlink to dash.
+When = PostTransaction
+Exec = /usr/bin/ln -sfT dash /usr/bin/sh
+Depends = dash
+EOF
 
 # Check if device is SSD, if so enable trim timer
 if [[ $(lsblk -Ddbpnl -o name,disc-gran | grep "$device" | awk '{print $2}') -gt 0 ]]; then
