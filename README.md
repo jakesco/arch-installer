@@ -6,5 +6,5 @@ Boot to a live image and simply follow the prompts in `arch-installer.sh`.
 
 ```
 # git clone https://github.com/jakesco/arch-installer.git
-# ./arch0installer/arch-installer.sh
+# ./arch-installer/arch-installer.sh
 ```

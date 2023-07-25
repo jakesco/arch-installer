@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 # Arch install script
-
-PS3="Make a selection: "
-
-# settings to make script fail loudly
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -21,9 +17,6 @@ Runs through the arch installation process.
 '
     exit
 fi
-
-# Change to current directory
-cd "$(dirname "$0")"
 
 if ! [ $(id -u) = 0 ]; then
     echo 'This script must be run as root.'
@@ -50,6 +43,7 @@ if [[ ! $(ping -c1 archlinux.org) ]] ; then
     exit 1
 fi
 
+PS3="Make a selection: "
 # Pick kernel
 kerneloptions="linux linux-hardened linux-lts linux-zen"
 echo "Which kernel do you want to install?"
@@ -257,8 +251,9 @@ initrd /initramfs-${kernel}.img
 options cryptdevice=UUID=$(blkid -s UUID -o value /dev/disk/by-partlabel/system):root root=/dev/mapper/root rw quiet splash zswap.enabled=0
 EOF
 
-# Make pacman pretty
+# Make pacman pretty and fast
 grep "^Color" /mnt/etc/pacman.conf > /dev/null || sed -i "s/^#Color/Color/" /mnt/etc/pacman.conf
+grep "^ParallelDownloads" /mnt/etc/pacman.conf > /dev/null || sed -i "s/^#ParallelDownloads/ParallelDownloads/" /mnt/etc/pacman.conf
 
 # Make large font permanent
 if [[ ${large_font,,} == "y" ]]; then
