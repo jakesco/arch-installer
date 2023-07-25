@@ -5,6 +5,6 @@ A bash script to install Arch Linux with encrypted drive, zram swap, and systemd
 Boot to a live image and simply follow the prompts in `arch-installer.sh`.
 
 ```
-# curl -O https://raw.githubusercontent.com/jakesco/arch-installer/master/arch-installer.sh
-# ./arch-installer.sh
+# git clone https://github.com/jakesco/arch-installer.git
+# ./arch0installer/arch-installer.sh
 ```
