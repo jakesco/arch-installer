@@ -22,7 +22,8 @@ cd "$(dirname "$0")"
 
 sudo pacman -S pipewire pipewire-docs pipewire-audio pipewire-pulse pipewire-jack \
 	wireplumber xdg-user-dirs mpv ffmpeg libnotify foot wl-clipboard wlsunset \
-	brightnessctl sway swayimg swayidle swaylock swaybg mako wev
+	brightnessctl sway swayimg swayidle swaylock swaybg mako \
+	ttf-jetbrains-mono-nerd
 
 systemctl --user enable --now pipewire
 systemctl --user enable --now pipewire-pulse
