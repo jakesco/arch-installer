@@ -12,7 +12,7 @@ trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND; exit $s' ERR
 if [[ "${1-}" =~ ^-*h(elp)?$ ]]; then
     echo 'Usage: ./arch-installer.sh
 
-Runs through the arch installation process. 
+Runs through the arch installation process.
 
 '
     exit
@@ -171,7 +171,7 @@ mount --mkdir LABEL=EFI /mnt/boot
 
 # Update mirrorlist
 echo "Updating pacman mirrorlist..."
-reflector --latest 5 --sort rate --country US --save /etc/pacman.d/mirrorlist
+reflector --protocol https --latest 5 --sort rate --country US --save /etc/pacman.d/mirrorlist
 
 # begin arch install
 echo "Bootstraping new install..."
