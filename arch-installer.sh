@@ -58,20 +58,15 @@ select kernel in $kerneloptions; do
 done
 echo "$kernel"
 
-# Pick microcode
-echo -e "\nWhich processor manufacturer?"
-select microcode in amd intel; do
-    case $microcode in
-        amd) microcode=amd-ucode
-            break
-            ;;
-        intel) microcode=intel-ucode
-            break
-            ;;
-        *) echo "Invalid option" ;;
-    esac
-done
-echo "$microcode"
+# Find required microcode
+if grep -q "GenuineIntel" /proc/cpuinfo; then
+    microcode="intel-ucode"
+elif grep -q "AuthenticAMD" /proc/cpuinfo; then
+    microcode="amd-ucode"
+else
+    echo "Unable to determine CPU manufacturer"
+    exit 1
+fi
 
 # get disks for install
 devicelist=$(lsblk -dpnx size -o name,size | grep -Ev "boot|rpmb|loop" | tac)
@@ -155,7 +150,7 @@ btrfs subvolume create /mnt/@home
 btrfs subvolume create /mnt/@log
 btrfs subvolume create /mnt/@pkg
 btrfs subvolume create /mnt/@snapshots
-btrfs subvolume set-default /mnt/\@
+btrfs subvolume set-default /mnt/@
 umount -R /mnt
 
 # Mount everything
@@ -180,7 +175,7 @@ sleep 4
 pacstrap -K /mnt base base-devel ${kernel} linux-firmware linux-headers \
               e2fsprogs dosfstools exfat-utils btrfs-progs cryptsetup \
               ${microcode} efibootmgr networkmanager ufw sudo reflector \
-              man-db man-pages texinfo dash greetd neovim git
+              man-db man-pages texinfo dash neovim git smartmontools
 
 echo "Configuring new install..."
 sleep 1
@@ -300,7 +295,6 @@ fi
 # Enable networkmanager, ufw and greeter
 arch-chroot /mnt systemctl enable NetworkManager.service
 arch-chroot /mnt systemctl enable ufw.service
-arch-chroot /mnt systemctl enable greetd.service
 
 # add admin user
 arch-chroot /mnt useradd -mU -G wheel "$username"
@@ -314,14 +308,6 @@ sed -i 's/# \(%wheel ALL=(ALL:ALL) ALL\)/\1/' /mnt/etc/sudoers
 
 # Disable root password
 arch-chroot /mnt passwd -l root
-
-# Enable autologin for admin user
-cat >> /mnt/etc/greetd/config.toml << EOF
-
-[initial_session]
-command = "/bin/bash"
-user = "${username}"
-EOF
 
 umount -R /mnt
 
