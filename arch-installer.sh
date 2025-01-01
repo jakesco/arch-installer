@@ -172,10 +172,10 @@ reflector --protocol https --latest 5 --sort rate --country US --save /etc/pacma
 echo "Bootstraping new install..."
 echo "It may look like the command is stalled but it's working."
 sleep 4
-pacstrap -K /mnt base base-devel ${kernel} linux-firmware linux-headers \
-              e2fsprogs dosfstools exfat-utils btrfs-progs cryptsetup \
-              ${microcode} efibootmgr networkmanager ufw sudo reflector \
-              man-db man-pages texinfo dash neovim git smartmontools
+pacstrap -K /mnt base base-devel ${kernel} linux-firmware linux-headers ${microcode} \
+              pacman-contrib e2fsprogs dosfstools exfat-utils btrfs-progs cryptsetup \
+              efibootmgr networkmanager ufw sudo reflector man-db man-pages texinfo \
+              dash neovim git smartmontools plymouth bash-completion fwupd
 
 echo "Configuring new install..."
 sleep 1
@@ -209,6 +209,7 @@ cat >> /mnt/etc/hosts << EOF
 EOF
 
 # Edit mkinitcpio.conf hooks
+# TODO: Switch to systemd based init
 sed -i 's/^\(HOOKS=.*\)file/\1encrypt file/' /mnt/etc/mkinitcpio.conf
 
 # Refresh initramfs
@@ -238,6 +239,7 @@ console-mode max
 editor no
 EOF
 
+# TODO: Switch to systemd based boot
 cat > /mnt/boot/loader/entries/arch.conf << EOF
 title Arch Linux
 linux /vmlinuz-${kernel}
@@ -292,9 +294,10 @@ if [[ $(lsblk -Ddbpnl -o name,disc-gran | grep "$device" | awk '{print $2}') -gt
     echo "fstrim enabled"
 fi
 
-# Enable networkmanager, ufw and greeter
+# Enable networkmanager, ufw and paccache timer
 arch-chroot /mnt systemctl enable NetworkManager.service
 arch-chroot /mnt systemctl enable ufw.service
+arch-chroot /mnt systemctl enable paccache.timer
 
 # add admin user
 arch-chroot /mnt useradd -mU -G wheel "$username"
