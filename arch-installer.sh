@@ -131,9 +131,9 @@ timedatectl set-ntp true
 
 # partition drive
 parted --script "${device}" mklabel gpt \
-    mkpart efi fat32 1Mib 513MiB \
+    mkpart efi fat32 1Mib 261MiB \
     set 1 boot on \
-    mkpart system btrfs 513MiB 100%
+    mkpart system btrfs 261MiB 100%
 
 # format partitions
 mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/efi
@@ -175,7 +175,7 @@ sleep 4
 pacstrap -K /mnt base base-devel ${kernel} linux-firmware linux-headers ${microcode} \
               pacman-contrib e2fsprogs dosfstools exfat-utils btrfs-progs cryptsetup \
               efibootmgr networkmanager ufw sudo reflector man-db man-pages texinfo \
-              dash neovim git smartmontools plymouth bash-completion lm_sensors
+              dash neovim git smartmontools plymouth bash-completion fwupd
 
 echo "Configuring new install..."
 sleep 1
@@ -184,7 +184,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 echo "Enabling zram..."
 sleep 1
 echo "zram" > /mnt/etc/modules-load.d/zram.conf
-echo 'ACTION=="add", KERNEL=="zram0", ATTR{comp_algorithm}="zstd", ATTR{disksize}="8G", RUN="/usr/bin/mkswap -U clear /dev/%k", TAG+="systemd"' > /mnt/etc/udev/rules.d/99.zram.rules
+echo 'ACTION=="add", KERNEL=="zram0", ATTR{comp_algorithm}="zstd", ATTR{disksize}="4G", RUN="/usr/bin/mkswap -U clear /dev/%k", TAG+="systemd"' > /mnt/etc/udev/rules.d/99.zram.rules
 cat >> /mnt/etc/fstab << EOF
 # /dev/zram0
 /dev/zram0 none swap defaults,pri=100 0 0
@@ -209,7 +209,8 @@ cat >> /mnt/etc/hosts << EOF
 EOF
 
 # Edit mkinitcpio.conf hooks
-sed -i 's/^HOOKS=.*/HOOKS=(systemd plymouth autodetect microcode modconf kms keyboard sd-vconsole sd-encrypt block filesystems fsck)/' /mnt/etc/mkinitcpio.conf
+# TODO: Switch to systemd based init
+sed -i 's/^\(HOOKS=.*\)file/\1encrypt file/' /mnt/etc/mkinitcpio.conf
 
 # Refresh initramfs
 arch-chroot /mnt mkinitcpio -P
@@ -238,12 +239,13 @@ console-mode max
 editor no
 EOF
 
+# TODO: Switch to systemd based boot
 cat > /mnt/boot/loader/entries/arch.conf << EOF
 title Arch Linux
 linux /vmlinuz-${kernel}
 initrd /${microcode}.img
 initrd /initramfs-${kernel}.img
-options rd.luks.name=$(blkid -s UUID -o value /dev/disk/by-partlabel/system)=root rd.luks.options=discard root=/dev/mapper/root rw quiet splash zswap.enabled=0
+options cryptdevice=UUID=$(blkid -s UUID -o value /dev/disk/by-partlabel/system):root root=/dev/mapper/root rw quiet splash zswap.enabled=0
 EOF
 sleep 1
 
