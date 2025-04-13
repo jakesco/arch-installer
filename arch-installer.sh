@@ -111,7 +111,7 @@ Kernel: $kernel
 Microcode: $microcode
 
 Drive $device will be wiped and the following partitions will be created...
-BOOT: 260MiB
+BOOT: 512MiB
 ROOT: Rest of drive
 SWAP: zram
 "
@@ -131,9 +131,9 @@ timedatectl set-ntp true
 
 # partition drive
 parted --script "${device}" mklabel gpt \
-    mkpart efi fat32 1Mib 261MiB \
+    mkpart efi fat32 1Mib 513MiB \
     set 1 boot on \
-    mkpart system btrfs 261MiB 100%
+    mkpart system btrfs 513MiB 100%
 
 # format partitions
 mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/efi
@@ -184,7 +184,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 echo "Enabling zram..."
 sleep 1
 echo "zram" > /mnt/etc/modules-load.d/zram.conf
-echo 'ACTION=="add", KERNEL=="zram0", ATTR{comp_algorithm}="zstd", ATTR{disksize}="4G", RUN="/usr/bin/mkswap -U clear /dev/%k", TAG+="systemd"' > /mnt/etc/udev/rules.d/99.zram.rules
+echo 'ACTION=="add", KERNEL=="zram0", ATTR{comp_algorithm}="zstd", ATTR{disksize}="8G", RUN="/usr/bin/mkswap -U clear /dev/%k", TAG+="systemd"' > /mnt/etc/udev/rules.d/99.zram.rules
 cat >> /mnt/etc/fstab << EOF
 # /dev/zram0
 /dev/zram0 none swap defaults,pri=100 0 0
