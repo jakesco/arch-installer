@@ -1,6 +1,6 @@
 # Arch Installer
 
-A bash script to install Arch Linux with encrypted drive, zram swap, and systemd-boot.
+A [bash script](https://raw.githubusercontent.com/jakesco/arch-installer/refs/heads/master/arch-installer.sh) to install Arch Linux with encrypted drive, zram swap, and systemd-boot.
 
 Boot to a live image and simply follow the prompts in `arch-installer.sh`.
 
